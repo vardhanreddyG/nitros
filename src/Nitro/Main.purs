@@ -10,7 +10,7 @@ import Control.Monad.Eff.Console (log)
 import FRP.Event.Time (animationFrame)
 import PrestoDOM.Core (PrestoDOM)
 import PrestoDOM.Elements (imageView, linearLayout, relativeLayout, textView)
-import PrestoDOM.Properties (background, backgroundColor, gravity, height, id_, imageUrl, margin, rotation, stroke, text, width)
+import PrestoDOM.Properties (background, backgroundColor, color, gravity, height, id_, imageUrl, margin, orientation, padding, rotation, stroke, text, width)
 import PrestoDOM.Types (Length(..))
 import PrestoDOM.Util (render, updateState)
 
@@ -76,9 +76,36 @@ renderTrack state =
     
     ]
 
+renderScore :: forall i p .State -> PrestoDOM i p
+renderScore state = 
+  linearLayout
+    [ id_  "scorecard"
+    , height (V 50)
+    , width (V 200)
+    , background "#282B2A"
+    , orientation "horizontal"
+    , margin "320,10,0,0"
+    , padding "10,10,10,10"
+    ]
+    [ textView
+        [ id_ "distance"
+        , text "distance"
+        , height (V 24)
+        , width (V 100)
+        , color "white"
+        ]
+    , textView
+        [ id_ "score"
+        , text "score"
+        , height (V 24)
+        , width ( V 25)
+        , color "white"
+        ]
+    ]
+
 renderGame :: forall i p . State -> PrestoDOM i p
 renderGame state =
-  linearLayout
+  relativeLayout
     [ id_ "playscreen"
     , height Match_Parent
     , width Match_Parent
@@ -86,6 +113,7 @@ renderGame state =
     , background "#478260"
     ]
     [ renderTrack state
+    , renderScore state
     ]
 
 main :: forall e. Eff ( dom :: DOM, frp :: FRP, console :: CONSOLE | e) Unit
