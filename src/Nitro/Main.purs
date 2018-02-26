@@ -1,4 +1,8 @@
 module Nitro.Main where
+import Control.Monad.Eff
+import DOM
+import FRP
+import Control.Monad.Eff.Console
 import Prelude
 import FRP.Behavior.Keyboard
 import Control.Monad.Eff.Console (log)
@@ -51,6 +55,7 @@ renderGame state =
 main :: forall e. Eff ( dom :: DOM, frp :: FRP, console :: CONSOLE | e) Unit
 main = do
   { stateBeh , updateState} <- render renderGame initialState
+  log "game loaded"
   
 
 initialState :: State
