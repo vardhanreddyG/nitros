@@ -8,6 +8,8 @@ import FRP.Behavior.Time
 import Prelude
 
 import Control.Monad.Eff.Console (log)
+import Data.Array (snoc, (!!))
+import Data.Maybe (Maybe(..))
 import FRP.Event.Time (animationFrame)
 import PrestoDOM.Core (PrestoDOM)
 import PrestoDOM.Elements (imageView, linearLayout, relativeLayout, textView)
@@ -18,87 +20,88 @@ import PrestoDOM.Util (render, updateState)
 type State =
   { distance :: Int
   , score :: Int
-  , carX :: Int
-  , carY :: Int
-  , car1X :: Int
-  , car1Y :: Int
-  , car2X :: Int
-  , car2Y :: Int
-  , car3X :: Int
-  , car3Y :: Int
-  , car4X :: Int
-  , car4Y :: Int
-  , car5X :: Int
-  , car5Y :: Int
-  , car6X :: Int
-  , car6Y :: Int
+  , player :: Car
+  , cars :: Array Car
+  , gameover :: Int
   }
-renderCar :: forall i p .State -> PrestoDOM i p
-renderCar state =
-  relativeLayout
-    [ id_ "carstrack"
-    ,height Match_Parent
-    , width ( V 300)
-    ]
-    [ imageView
-        [ 
-         imageUrl "car"
-        , height (V 50)
-        , width (V 100)
-        , rotation "90"
-        , margin $ (show state.car1X) <> "," <> (show state.car1Y) <> ",0,0"
-        ]
-    , imageView
-        [ 
-         imageUrl "car4"
-        , height (V 50)
-        , width (V 100)
-        , rotation "90"
-        , margin $ (show state.car2X) <> "," <> (show state.car2Y ) <> ",0,0"
-        ]
-    , imageView
-        [ 
-         imageUrl "driver"
-        , height (V 50)
-        , width (V 100)
-        , rotation "90"
-        , margin $ (show state.car3X) <> "," <> (show state.car3Y ) <> ",0,0"
-        ]
-    ]
 
-renderCar' :: forall i p .State -> PrestoDOM i p
-renderCar' state =
-  relativeLayout
-    [ id_ "carstrack2"
-    ,height Match_Parent
-    , width ( V 300)
-    , margin "0,0,0,0"
+renderCar :: forall i p. Car -> PrestoDOM i p
+renderCar car =
+  imageView
+    [ id_ car.image
+    , height (V 50)
+    , width (V 100)
+    , margin $ (show car.x) <> "," <> (show car.y) <> ",0,0"
+    , rotation car.rotation
+    , imageUrl car.image
     ]
-    [ imageView
-        [ 
-         imageUrl "car"
-        , height (V 50)
-        , width (V 100)
-        , rotation "90"
-        , margin $ (show state.car1X) <> "," <> (show state.car1Y) <> ",0,0"
-        ]
-    , imageView
-        [ 
-         imageUrl "car4"
-        , height (V 50)
-        , width (V 100)
-        , rotation "90"
-        , margin $ (show state.car2X) <> "," <> (show state.car2Y ) <> ",0,0"
-        ]
-    , imageView
-        [ 
-         imageUrl "driver"
-        , height (V 50)
-        , width (V 100)
-        , rotation "90"
-        , margin $ (show state.car3X) <> "," <> (show state.car3Y ) <> ",0,0"
-        ]
-    ]
+  
+-- renderCar :: forall i p .State -> PrestoDOM i p
+-- renderCar state =
+--   relativeLayout
+--     [ id_ "carstrack"
+--     ,height Match_Parent
+--     , width ( V 300)
+--     ]
+--     [ imageView
+--         [ 
+--          imageUrl "car"
+--         , height (V 50)
+--         , width (V 100)
+--         , rotation "90"
+--         , margin $ (show state.car1X) <> "," <> (show state.car1Y) <> ",0,0"
+--         ]
+--     , imageView
+--         [ 
+--          imageUrl "car4"
+--         , height (V 50)
+--         , width (V 100)
+--         , rotation "90"
+--         , margin $ (show state.car2X) <> "," <> (show state.car2Y ) <> ",0,0"
+--         ]
+--     , imageView
+--         [ 
+--          imageUrl "driver"
+--         , height (V 50)
+--         , width (V 100)
+--         , rotation "90"
+--         , margin $ (show state.car3X) <> "," <> (show state.car3Y ) <> ",0,0"
+--         ]
+--     ]
+
+-- renderCar' :: forall i p .State -> PrestoDOM i p
+-- renderCar' state =
+--   relativeLayout
+--     [ id_ "carstrack2"
+--     ,height Match_Parent
+--     , width ( V 300)
+--     , margin "0,0,0,0"
+--     ]
+--     [ imageView
+--         [ 
+--          imageUrl "car"
+--         , height (V 50)
+--         , width (V 100)
+--         , rotation "90"
+--         , margin $ (show state.car1X) <> "," <> (show state.car1Y) <> ",0,0"
+--         ]
+--     , imageView
+--         [ 
+--          imageUrl "car4"
+--         , height (V 50)
+--         , width (V 100)
+--         , rotation "90"
+--         , margin $ (show state.car2X) <> "," <> (show state.car2Y ) <> ",0,0"
+--         ]
+--     , imageView
+--         [ 
+--          imageUrl "driver"
+--         , height (V 50)
+--         , width (V 100)
+--         , rotation "90"
+--         , margin $ (show state.car3X) <> "," <> (show state.car3Y ) <> ",0,0"
+--         ]
+--     ]
 
 renderTrack :: forall i p. State -> PrestoDOM i p
 renderTrack state = 
@@ -107,12 +110,9 @@ renderTrack state =
     , height Match_Parent
     , width (V 300)
     , background "#282B2A"
+    , gravity "center"
     ]
-    [ textView
-        [ id_ "text"
-        , text "ok"
-        ]
-    , relativeLayout
+    [  relativeLayout
         [ id_ "div3"
         , height Match_Parent
         , width ( V 2)
@@ -128,14 +128,6 @@ renderTrack state =
         , margin "190,0,0,0"
         ]
         []
-    , imageView
-        [ id_ "car"
-        , imageUrl "driver"
-        , rotation "-90"
-        , height (V 50)
-        , width (V 100)
-        , margin $ (show state.carX) <> "," <> (show state.carY) <> ",0,0"
-        ]
     , relativeLayout
         [ id_ "div1"
         , height Match_Parent
@@ -184,88 +176,130 @@ renderScore state =
 
 renderGame :: forall i p . State -> PrestoDOM i p
 renderGame state =
-  relativeLayout
+  linearLayout
     [ id_ "playscreen"
     , height Match_Parent
     , width Match_Parent
     , gravity "center"
     , background "#478260"
     ]
-    [ renderTrack state
-    , renderCar state
-    -- , renderCar' state
-    , renderScore state
+    [ relativeLayout
+        [ id_ "gameContainer"
+        , height Match_Parent
+        , width (V 300)
+        ]
+        [ renderTrack state
+        , renderCar state.player
+        , relativeLayout
+            [ id_ "otherCars"
+            , width Match_Parent
+            , height Match_Parent
+            ]
+            (map renderCar state.cars)
+        , renderScore state
+        ]
     ]
 
 main :: forall e. Eff ( dom :: DOM, frp :: FRP, console :: CONSOLE | e) Unit
 main = do
   { stateBeh , updateState} <- render renderGame initialState
+  updateState
+        (eval <$> key 37 <*> key 39 <*> stateBeh)
+        animationFrame *>
+    pure unit
 
-  _ <- updateState
-    (eval <$> key 37 <*> key 39 <*> stateBeh)
-    animationFrame
-  _ <- updateState
-    (eval1 <$> millisSinceEpoch <*> stateBeh)
-    animationFrame
-  _ <- updateState
-    (eval2 <$> millisSinceEpoch <*> stateBeh)
-    animationFrame
-  _ <- updateState
-    (eval3 <$> millisSinceEpoch <*> stateBeh)
-    animationFrame
-
-  log "game loaded"
-  
 eval :: Boolean -> Boolean -> State -> State
-eval true true state = state
-eval true false state = moveLeft state
-eval false true state = moveRight state
-eval false false state = state
+eval keyLeft keyRight state = ((movePlayer keyLeft keyRight) >>> otherCarsUpdate) state
 
--- renderCars :: forall i p . State -> PrestoDOM i p
--- renderCars sate = 
-eval1 :: Number -> State -> State
-eval1 _ state = moveCar1 state
+movePlayer :: Boolean -> Boolean -> State -> State
+movePlayer true false state = state { player = state.player { x = (max 0 (min (state.player.x - 4) 200)) } }
+movePlayer false true state = state { player = state.player { x = (max 0 (min (state.player.x + 4) 200)) } }
+movePlayer _ _ state = state
 
-eval2 :: Number -> State -> State
-eval2 _ state = moveCar2 state
+otherCarsUpdate :: State -> State
+otherCarsUpdate state = moveCars >>> checkCollisions $ state
 
-eval3 :: Number -> State -> State
-eval3 _ state = moveCar3 state
+moveCars :: State -> State
+moveCars state = do
+    let { state, cars } = moveCarHelper { state: state, cars: [] } 0
+    state { cars = cars }
 
+moveCarHelper :: { state :: State, cars :: Array Car } -> Int -> { state :: State, cars :: Array Car }
+moveCarHelper { state, cars } currentIndex =
+    case state.cars !! currentIndex of
+        Nothing -> { state, cars }
+        Just car ->
+            moveCarHelper
+                { state: state
+                , cars: cars `snoc` (checkResetCarPosition car { y = car.y + car.dy })
+                }
+                (currentIndex + 1)
 
-moveCar1 :: State -> State
-moveCar1 state = state { car1Y = if state.car1Y == 750 then state.car1Y-1000 else state.car1Y + 5}
-
-moveCar3 :: State -> State
-moveCar3 state = state { car3Y = if state.car3Y == 750 then state.car3Y-1000 else state.car3Y + 5}
-
-moveCar2 :: State -> State
-moveCar2 state = state { car2Y = if state.car2Y == 750 then state.car2Y-1000 else state.car2Y + 5}
-
-moveLeft :: State -> State
-moveLeft state = state { carX = if state.carX == -12 then state.carX else state.carX -7  }
-
-moveRight :: State -> State
-moveRight state = state { carX = if state.carX == 219 then state.carX else state.carX +7  }
-
+checkCollisions :: State -> State
+checkCollisions state = state
+  
+checkResetCarPosition :: Car -> Car
+checkResetCarPosition car =
+  if car.y >= 750 then
+    car { y = -100 }
+  else car
 initialState :: State
 initialState =
   { distance: 0
   , score: 0
-  , carX: 100
-  , carY: 700
-  , car1X : 0
-  , car1Y : 0
-  , car2X : 100
-  , car2Y : 200
-  , car3X : 200
-  , car3Y : 0
-  , car4X : 0
-  , car4Y : 0
-  , car5X : 100
-  , car5Y : 200
-  , car6X : 200
-  , car6Y : 0
+  , player:
+        { x: 100
+        , y: 700
+        , dy: 0
+        , image: "player"
+        , rotation : "-90"
+        }
+  , cars:
+        [ { x: 10
+          , y: -100
+          , dy: 5
+          , image: "car4"
+          , rotation : "90"
+          }
+        , { x: 100
+          , y: -400
+          , dy: 5
+          , image: "car5"
+          , rotation : "90"
+          }
+        , { x: 190
+          , y: -400
+          , dy: 5
+          , image: "car7"
+          , rotation : "90"
+          }
+        , { x: 10
+          , y: -800
+          , dy: 5
+          , image: "car1"
+          , rotation : "90"
+          }
+        , { x: 100
+          , y: -900
+          , dy: 5
+          , image: "car3"
+          , rotation : "90"
+          }
+        , { x: 190
+          , y: -1280
+          , dy: 5
+          , image: "car2"
+          , rotation : "90"
+          }
+        ]
+  , gameover : 0
+  }
+
+type Car = 
+  { x :: Int
+  , y :: Int
+  , dy :: Int
+  , image :: String
+  , rotation :: String
   }
   
