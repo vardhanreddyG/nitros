@@ -102,7 +102,7 @@ renderScore state =
         [ id_ "score"
         , text $ show state.score
         , height (V 24)
-        , width ( V 25)
+        , width ( V 30)
         , color "white"
         ]
     ]
@@ -175,7 +175,7 @@ moveCarHelper { state, cars } currentIndex =
         Just car ->
             moveCarHelper
                 { state: state
-                , cars: cars `snoc` (checkResetCarPosition car { y = car.y + car.dy + (state.score / 100) })
+                , cars: cars `snoc` (checkResetCarPosition car { y = car.y + car.dy + (min 10 (state.score/100) ) })
                 }
                 (currentIndex + 1)
 
@@ -201,7 +201,7 @@ checkCollisionHelper state currentIndex =
 checkResetCarPosition :: Car -> Car
 checkResetCarPosition car =
   if car.y >= 760 then
-    car { y = -100 }
+    car { y = -600 }
   else car
 initialState :: State
 initialState =
@@ -215,40 +215,52 @@ initialState =
         , rotation : "-90"
         }
   , cars:
-        [ { x: 0
-          , y: 0
+        [ { x: 100
+          , y: -300
           , dy: 5
-          , image: "car1"
-          , rotation : "90"
-          }
-        , { x: 100
-          , y: 250
-          , dy: 5
-          , image: "car2"
-          , rotation : "90"
-          }
-        , { x: 200
-          , y: 0
-          , dy: 5
-          , image: "car3"
+          , image: "blue"
           , rotation : "90"
           }
         , { x: 10
-          , y: -200
+          , y: -600
           , dy: 5
-          , image: "car4"
+          , image: "blue2"
+          , rotation : "90"
+          }
+        , { x: 200
+          , y: -600
+          , dy: 5
+          , image: "yellow"
           , rotation : "90"
           }
         , { x: 100
-          , y: -250
+          , y: -900
           , dy: 5
-          , image: "car5"
+          , image: "purple"
           , rotation : "90"
           }
-        , { x: 190
-          , y: -250
+        , { x: 10
+          , y: -1200
           , dy: 5
-          , image: "car6"
+          , image: "green"
+          , rotation : "90"
+          }
+        , { x: 200
+          , y: -1200
+          , dy: 5
+          , image: "yellow1"
+          , rotation : "90"
+          }
+        , { x: 100
+          , y: -1500
+          , dy: 5
+          , image: "red1"
+          , rotation : "90"
+          }
+        , { x: 200
+          , y: -1500
+          , dy: 5
+          , image: "blue1"
           , rotation : "90"
           }
         ]
