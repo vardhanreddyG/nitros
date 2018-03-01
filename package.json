@@ -1,6 +1,8 @@
 {
   "scripts": {
-    "start": "webpack-dev-server --content-base dist/ --host 0.0.0.0"
+    "start": "webpack-dev-server --content-base dist/ --host 0.0.0.0",
+    "compile-ps": "pulp build",
+    "compile-js": "webpack --progress --colors --optimize-minimize"
   },
   "dependencies": {
     "babel": "^6.23.0",

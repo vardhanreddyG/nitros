@@ -22,7 +22,7 @@ type State =
   , score :: Int
   , player :: Car
   , cars :: Array Car
-  , gameover :: Int
+  , currentScreen :: GameScreen
   }
 
 renderCar :: forall i p. Car -> PrestoDOM i p
@@ -35,73 +35,6 @@ renderCar car =
     , rotation car.rotation
     , imageUrl car.image
     ]
-  
--- renderCar :: forall i p .State -> PrestoDOM i p
--- renderCar state =
---   relativeLayout
---     [ id_ "carstrack"
---     ,height Match_Parent
---     , width ( V 300)
---     ]
---     [ imageView
---         [ 
---          imageUrl "car"
---         , height (V 50)
---         , width (V 100)
---         , rotation "90"
---         , margin $ (show state.car1X) <> "," <> (show state.car1Y) <> ",0,0"
---         ]
---     , imageView
---         [ 
---          imageUrl "car4"
---         , height (V 50)
---         , width (V 100)
---         , rotation "90"
---         , margin $ (show state.car2X) <> "," <> (show state.car2Y ) <> ",0,0"
---         ]
---     , imageView
---         [ 
---          imageUrl "driver"
---         , height (V 50)
---         , width (V 100)
---         , rotation "90"
---         , margin $ (show state.car3X) <> "," <> (show state.car3Y ) <> ",0,0"
---         ]
---     ]
-
--- renderCar' :: forall i p .State -> PrestoDOM i p
--- renderCar' state =
---   relativeLayout
---     [ id_ "carstrack2"
---     ,height Match_Parent
---     , width ( V 300)
---     , margin "0,0,0,0"
---     ]
---     [ imageView
---         [ 
---          imageUrl "car"
---         , height (V 50)
---         , width (V 100)
---         , rotation "90"
---         , margin $ (show state.car1X) <> "," <> (show state.car1Y) <> ",0,0"
---         ]
---     , imageView
---         [ 
---          imageUrl "car4"
---         , height (V 50)
---         , width (V 100)
---         , rotation "90"
---         , margin $ (show state.car2X) <> "," <> (show state.car2Y ) <> ",0,0"
---         ]
---     , imageView
---         [ 
---          imageUrl "driver"
---         , height (V 50)
---         , width (V 100)
---         , rotation "90"
---         , margin $ (show state.car3X) <> "," <> (show state.car3Y ) <> ",0,0"
---         ]
---     ]
 
 renderTrack :: forall i p. State -> PrestoDOM i p
 renderTrack state = 
@@ -167,7 +100,7 @@ renderScore state =
         ]
     , textView
         [ id_ "score"
-        , text "score"
+        , text $ show state.score
         , height (V 24)
         , width ( V 25)
         , color "white"
@@ -190,12 +123,17 @@ renderGame state =
         ]
         [ renderTrack state
         , renderCar state.player
-        , relativeLayout
-            [ id_ "otherCars"
-            , width Match_Parent
-            , height Match_Parent
-            ]
-            (map renderCar state.cars)
+        , if state.currentScreen == PlayScreen then
+            relativeLayout
+                [ id_ "otherCars"
+                , width Match_Parent
+                , height Match_Parent
+                ]
+                (map renderCar state.cars)
+            else relativeLayout
+                    [ id_ "otherCars"
+                    ]
+                    []
         , renderScore state
         ]
     ]
@@ -204,20 +142,26 @@ main :: forall e. Eff ( dom :: DOM, frp :: FRP, console :: CONSOLE | e) Unit
 main = do
   { stateBeh , updateState} <- render renderGame initialState
   updateState
-        (eval <$> key 37 <*> key 39 <*> stateBeh)
+        (eval <$> key 37 <*> key 39 <*> key 32 <*> stateBeh)
         animationFrame *>
     pure unit
 
-eval :: Boolean -> Boolean -> State -> State
-eval keyLeft keyRight state = ((movePlayer keyLeft keyRight) >>> otherCarsUpdate) state
+eval :: Boolean -> Boolean -> Boolean -> State -> State
+eval keyLeft keyRight keySpace state = 
+    case state.currentScreen of
+        PlayScreen -> ((movePlayer keyLeft keyRight) >>> otherCarsUpdate >>> updateScore) state
+        GameOverScreen -> if keySpace then initialState { currentScreen = PlayScreen } else state
 
 movePlayer :: Boolean -> Boolean -> State -> State
-movePlayer true false state = state { player = state.player { x = (max 0 (min (state.player.x - 4) 200)) } }
-movePlayer false true state = state { player = state.player { x = (max 0 (min (state.player.x + 4) 200)) } }
+movePlayer true false state = state { player = state.player { x = (max 0 (min (state.player.x - 7) 200)) } }
+movePlayer false true state = state { player = state.player { x = (max 0 (min (state.player.x + 7) 200)) } }
 movePlayer _ _ state = state
 
 otherCarsUpdate :: State -> State
 otherCarsUpdate state = moveCars >>> checkCollisions $ state
+
+updateScore :: State -> State
+updateScore state = state { score = state.score + 1 }
 
 moveCars :: State -> State
 moveCars state = do
@@ -231,16 +175,32 @@ moveCarHelper { state, cars } currentIndex =
         Just car ->
             moveCarHelper
                 { state: state
-                , cars: cars `snoc` (checkResetCarPosition car { y = car.y + car.dy })
+                , cars: cars `snoc` (checkResetCarPosition car { y = car.y + car.dy + (state.score / 100) })
                 }
                 (currentIndex + 1)
 
 checkCollisions :: State -> State
-checkCollisions state = state
+checkCollisions state = checkCollisionHelper state 0
+
+intersects :: Car -> Car -> Boolean
+intersects a b = not (a.x > b.x + 50 || b.x > a.x + 50) &&
+                 not (a.y > b.y + 100 || b.y > a.y + 100)
+
+
+checkCollisionHelper :: State -> Int -> State
+checkCollisionHelper state currentIndex =
+    case state.cars !! currentIndex of
+        Nothing -> state
+        Just car ->
+            if intersects car state.player then
+                state { currentScreen = GameOverScreen }
+            else 
+                 checkCollisionHelper state (currentIndex + 1)
+
   
 checkResetCarPosition :: Car -> Car
 checkResetCarPosition car =
-  if car.y >= 750 then
+  if car.y >= 760 then
     car { y = -100 }
   else car
 initialState :: State
@@ -255,44 +215,44 @@ initialState =
         , rotation : "-90"
         }
   , cars:
-        [ { x: 10
-          , y: -100
-          , dy: 5
-          , image: "car4"
-          , rotation : "90"
-          }
-        , { x: 100
-          , y: -400
-          , dy: 5
-          , image: "car5"
-          , rotation : "90"
-          }
-        , { x: 190
-          , y: -400
-          , dy: 5
-          , image: "car7"
-          , rotation : "90"
-          }
-        , { x: 10
-          , y: -800
+        [ { x: 0
+          , y: 0
           , dy: 5
           , image: "car1"
           , rotation : "90"
           }
         , { x: 100
-          , y: -900
-          , dy: 5
-          , image: "car3"
-          , rotation : "90"
-          }
-        , { x: 190
-          , y: -1280
+          , y: 250
           , dy: 5
           , image: "car2"
           , rotation : "90"
           }
+        , { x: 200
+          , y: 0
+          , dy: 5
+          , image: "car3"
+          , rotation : "90"
+          }
+        , { x: 10
+          , y: -200
+          , dy: 5
+          , image: "car4"
+          , rotation : "90"
+          }
+        , { x: 100
+          , y: -250
+          , dy: 5
+          , image: "car5"
+          , rotation : "90"
+          }
+        , { x: 190
+          , y: -250
+          , dy: 5
+          , image: "car6"
+          , rotation : "90"
+          }
         ]
-  , gameover : 0
+  , currentScreen : GameOverScreen
   }
 
 type Car = 
@@ -303,3 +263,9 @@ type Car =
   , rotation :: String
   }
   
+data GameScreen = PlayScreen | GameOverScreen
+
+instance eqGameScreen :: Eq GameScreen where
+  eq PlayScreen PlayScreen = true
+  eq GameOverScreen GameOverScreen = true
+  eq _ _ = false
