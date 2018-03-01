@@ -82,27 +82,55 @@ renderTrack state =
 
 renderScore :: forall i p .State -> PrestoDOM i p
 renderScore state = 
+    linearLayout
+        [ id_ "rightPane"
+        , height (V 200)
+        , width (V 200)
+        , margin "320,10,0,0"
+        , padding "10,10,10,10"
+        , orientation "vertical"
+        ]
+        [ linearLayout
+            [ id_  "scorecard"
+            , height (V 50)
+            , width Match_Parent
+            , background "#282B2A"
+            , orientation "horizontal"
+            , gravity "center"
+            , padding "10,0,0,0"
+            ]
+            [ textView
+                [ id_ "score"
+                , text $ "Distance: " <> (show state.score)
+                , height (V 20)
+                , width Match_Parent
+                , color "white"
+                ]
+            ]
+        , renderinstruction state
+        ]
+
+renderinstruction :: forall i p .State -> PrestoDOM i p
+renderinstruction state = 
   linearLayout
-    [ id_  "scorecard"
+    [ id_  "instructions"
     , height (V 50)
-    , width (V 200)
-    , background "#282B2A"
-    , orientation "horizontal"
-    , margin "320,10,0,0"
+    , width Match_Parent
+    , orientation "vertical"
     , padding "10,10,10,10"
     ]
     [ textView
-        [ id_ "distance"
-        , text "distance"
+        [ id_ "startgame"
+        , text "Press Space to start"
         , height (V 24)
-        , width (V 100)
+        , width Match_Parent
         , color "white"
         ]
-    , textView
-        [ id_ "score"
-        , text $ show state.score
+      , textView
+        [ id_ "restartgame"
+        , text "Refresh page to restart game"
         , height (V 24)
-        , width ( V 30)
+        , width Match_Parent
         , color "white"
         ]
     ]
